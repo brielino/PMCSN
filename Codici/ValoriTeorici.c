@@ -36,11 +36,13 @@ double Calculate_PQ(int n_server,double RO)
 
 void MultiServer()
 {
-    double prob1=0.65;
-    double prob2=0.35;
-    int n_server=2;
-    double LAMBDA=0.2941;
-    double MU=0.25;
+    double prob1 = 0.65;
+    double prob2 = 0.35;
+    int n_server = 3;
+    double LAMBDA = 0.2941;
+    double MU = 0.2;
+    double MU_D = 1.66;
+    
     
     double E_s = 1/(MU*n_server);
 
@@ -49,6 +51,8 @@ void MultiServer()
     double LAMBDA1 = prob1*LAMBDA;
     double LAMBDA2 = prob2*LAMBDA;
 
+    double RO_D = LAMBDA2/MU_D;
+
     double R1 = LAMBDA1/(n_server*MU);
     double R2 = LAMBDA2/(n_server*MU);
 
@@ -56,8 +60,13 @@ void MultiServer()
     double PQ1 = Calculate_PQ(n_server,R1);
     double PQ = Calculate_PQ(n_server,RO);
 
-    double E_ts = prob1*((PQ1*E_s)/(1-R1)+E_si)+prob2*((PQ*E_s)/((1-RO)*(1-R1))+E_si);
-    printf("PQ1 = %f  ----   PQ = %f ----- E(tq) = %f\n",PQ1,PQ,E_ts);
+    double E_t1 = prob1*((PQ1*E_s)/(1-R1)+E_si);
+    double E_t2 = prob2*((PQ*E_s)/((1-RO)*(1-R1))+E_si);
+    double E_ts = E_t1 + E_t2;
+    double E_tsD = (RO_D*(1/MU_D))/(1-RO_D);
+    printf("PQ1 = %f  ----   PQ = %f ----- E(ts) = %f\n",PQ1,PQ,E_ts);
+    printf("Nel caso di un server aggiuntivo per la seconda coda (Per effettuare la Diagnosi)\n"
+            "il tempo di risposta del sistema è E(ts) = %f\n",E_ts+0.35*E_tsD);
 }
 
 void SingleServer()
@@ -66,7 +75,7 @@ void SingleServer()
     double prob2=0.35;
     
     double LAMBDA=0.2941;
-    double MU=0.7;
+    double MU=0.2;
     
     double E_s = 1/(MU);
 
@@ -85,19 +94,8 @@ void SingleServer()
 }
 
 void main(int argc, char * argv[])
-{
-    if(argc < 2)
-    {
-        printf("Passare 1 se si vuole il Single-server, un altro numero se Multi-server\n");
-        return;
-    }
-    if(*argv[1] == '1')
-    {
-        SingleServer();
-    }else
-    {
-        MultiServer();
-    }
-
+{ 
+    double MU_D = 1.66;
+    MultiServer();
 
 }

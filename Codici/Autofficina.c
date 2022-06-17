@@ -4,7 +4,7 @@
  * Language        : C                                                        *
  * Latest Revision : 09-05-2022                                               *
  * -------------------------------------------------------------------------- */
-
+/*
                                  ________                      ______
                                         |                     /  M   \
 ------------------------------>  Coda1  |--------->|         |   U    |
@@ -23,7 +23,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #define START 0.0               /* initial time                         */
-#define STOP 300000.0            /* terminal (close the door) time       */
+#define STOP 11520.0            /* terminal (close the door) time       */
 #define INFINITE (100.0 * STOP) /* must be much larger than STOP        */
 #define SERVERS 2
 #define LAMBDA 0.2941               /* Traffic flow rate                    */
@@ -360,7 +360,7 @@ void main()
     
 
     
-    double tot_area = area[0] + area[1];
+    double tot_area = area[0] + area[1] + area[2];
     printf("Area 0 %lf\n",area[0]);
     printf("Area 1 %lf\n",area[1]);
     printf("Area 2 %lf\n",area[2]);
