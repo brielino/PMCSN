@@ -38,11 +38,12 @@ void MultiServer()
 {
     double prob1 = 0.65;
     double prob2 = 0.35;
-    int n_server = 3;
+    int n_server = 4;
     double LAMBDA = 0.2941;
     double MU = 0.2;
     double MU_D = 1.66;
     
+    double E_sD = 1/MU_D;
     
     double E_s = 1/(MU*n_server);
 
@@ -59,14 +60,18 @@ void MultiServer()
     double RO = LAMBDA/(n_server*MU);
     double PQ1 = Calculate_PQ(n_server,R1);
     double PQ = Calculate_PQ(n_server,RO);
-
-    double E_t1 = prob1*((PQ1*E_s)/(1-R1)+E_si);
-    double E_t2 = prob2*((PQ*E_s)/((1-RO)*(1-R1))+E_si);
-    double E_ts = E_t1 + E_t2;
-    double E_tsD = (RO_D*(1/MU_D))/(1-RO_D);
-    printf("PQ1 = %f  ----   PQ = %f ----- E(ts) = %f\n",PQ1,PQ,E_ts);
-    printf("Nel caso di un server aggiuntivo per la seconda coda (Per effettuare la Diagnosi)\n"
-            "il tempo di risposta del sistema è E(ts) = %f\n",E_ts+0.35*E_tsD);
+    double E_tq1 = ((PQ1*E_s)/(1-R1));
+    double E_tq2 = ((PQ*E_s)/((1-RO)*(1-R1)));
+    double E_tqD = (RO_D*(1/MU_D))/(1-RO_D);
+    printf("1) Statistiche Globali (Sistema)\n");
+    printf("    E(Ts) = %6.6f\n",prob1*E_tq1+prob2*E_tq2+E_si +prob2*(E_tqD+E_sD));
+    printf("2) Statistiche Locali\n");
+    printf("            E(ts)       E(tq)       E(S)\n");
+    printf("Diagnosi    %6.6f   %6.6f   %6.6f\n",E_tqD+E_sD,E_tqD,E_sD);
+    
+    printf("Coda_1      %6.6f   %6.6f   %6.6f\n",E_tq1+E_si,E_tq1,E_si);
+    printf("Coda_2      %6.6f   %6.6f   %6.6f\n",E_tq2+E_si,E_tq2,E_si);
+    
 }
 
 void SingleServer()
@@ -94,8 +99,7 @@ void SingleServer()
 }
 
 void main(int argc, char * argv[])
-{ 
-    double MU_D = 1.66;
+{
     MultiServer();
 
 }

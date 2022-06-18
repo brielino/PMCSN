@@ -5,7 +5,7 @@
  * Latest Revision : 16-06-2022                                               *
  * -------------------------------------------------------------------------- */
 /*
-                                 ________                      ______
+                                ________                      ______
                                         |                     /  M   \
 ------------------------------>  Coda1  |--------->|         |   U    |
                                 ________|          |         |   L    |
@@ -23,10 +23,11 @@
 #include <unistd.h>
 #include <stdbool.h>
 #define START 0.0               /* initial time                         */
-#define STOP 11520.0            /* terminal (close the door) time       */
+#define STOP 300000.0            /* terminal (close the door) time       */
 #define INFINITE (100.0 * STOP) /* must be much larger than STOP        */
-#define SERVERS 2
-#define LAMBDA 0.2941               /* Traffic flow rate                    */
+#define SERVERS 4
+#define LAMBDA 0.2941              /* Traffic flow rate                    */
+
 #define MU 0.2                 /* Service flow rate                    */
 #define MU_D 1.66                /* Service flow rate Diagnosi           */
 
@@ -41,8 +42,9 @@ typedef struct
 // Output Statistics
 typedef struct
 {                   // aggregated sums of:       
-    double service;     //   service times                    
-    long served;        //   number of served jobs          
+    double service_1;     //   service times per job di tipo 1
+    double service_2;     //   service times per job di tipo 2                   
+    long served;        //   number of served jobs       
     long arrives;       //   arrives in the node             
 
 } sum[SERVERS+1];
@@ -63,6 +65,8 @@ long queue[3] = { 0 , 0 , 0}; //number of jobs in queue
 long arrivals = 0;
 long departures = 0;
 double area[3] = { 0.0 , 0.0 , 0.0};
+long arrivi_tipo1 = 0;
+long arrivi_tipo2 = 0;
 t clock;
 event_list event;
 sum statistics;
@@ -72,9 +76,11 @@ int Type_of_arrive()
     double rand = Random();
     if(rand > 0 && rand < 6.5/10.0)
     {
+        arrivi_tipo1++;
         return 1;
     }else
     {
+        arrivi_tipo2++;
         return 2;
     }
 }
@@ -98,7 +104,7 @@ double GetArrival()
  * generate the next arrival time, with rate LAMBDA                           *
  * -------------------------------------------------------------------------- */
     static double arrival = START;
-
+    arrivals++;
     SelectStream(0);
     arrival += Exponential(1.0 / LAMBDA);
     return (arrival);
@@ -166,14 +172,14 @@ void ProcessArrivals()
             //printf("il numero di elementi in coda è %ld\n",queue[0] - NumeroDiJobPerTipoNelSistema(1));
             //if((queue[0] - NumeroDiJobPerTipoNelSistema(1))== 0)
             
-                int server_free = FoundServerFree();
-                //printf("Il server libero è  = %d\n",server_free);
-                double service_time = GetService(MU);
-                event[server_free].t = clock.current + service_time;
-                event[server_free].x = 1;
-                statistics[server_free-1].service += service_time;
-                statistics[server_free-1].served++;
-                n_server_free--;
+            int server_free = FoundServerFree();
+            //printf("Il server libero è  = %d\n",server_free);
+            double service_time = GetService(MU);
+            event[server_free].t = clock.current + service_time;
+            event[server_free].x = 1;
+            statistics[server_free-1].service_1 += service_time;
+            statistics[server_free-1].served++;
+            n_server_free--;
             
             
         }
@@ -190,8 +196,8 @@ void ProcessArrivals()
             double service_time = GetService(MU_D);
             event[1].t = clock.current + service_time;
             event[1].x = 3;
-            statistics[1].service += service_time;
-            statistics[1].served++;
+            statistics[0].service_2 += service_time;
+            statistics[0].served++;
         }
         queue[1]++;
     }
@@ -218,6 +224,8 @@ void ProcessDeparture(int current_server)
             double service_time = GetService(MU_D);
             event[1].t = clock.current + service_time;
             event[1].x = 1;
+            statistics[0].service_2 += service_time;
+            statistics[0].served++;
         }
         else
         {
@@ -232,7 +240,7 @@ void ProcessDeparture(int current_server)
             double service_time = GetService(MU);
             event[server_free].t = clock.current + service_time;
             event[server_free].x = 2;
-            statistics[server_free-1].service += service_time;
+            statistics[server_free-1].service_2 += service_time;
             statistics[server_free-1].served++;
             n_server_free--;
         }
@@ -255,7 +263,7 @@ void ProcessDeparture(int current_server)
             service_time = GetService(MU);
             event[current_server].t = service_time +clock.current;
             event[current_server].x = 1;
-            statistics[current_server-1].service += service_time;
+            statistics[current_server-1].service_1 += service_time;
             statistics[current_server-1].served++;
         
         }
@@ -272,7 +280,7 @@ void ProcessDeparture(int current_server)
             service_time = GetService(MU);
             event[current_server].t = service_time +clock.current;
             event[current_server].x = 2;
-            statistics[current_server-1].service += service_time;
+            statistics[current_server-1].service_2 += service_time;
             statistics[current_server-1].served++;
         }
         else
@@ -342,7 +350,6 @@ void main()
         {
             // Process an Arrival
             //printf("Processo Arrivo\n\n");
-            arrivals++;
             ProcessArrivals();
             event[0].t = GetArrival();
             event[0].x = Type_of_arrive();
@@ -361,18 +368,36 @@ void main()
 
     
     double tot_area = area[0] + area[1] + area[2];
-    printf("Area 0 %lf\n",area[0]);
-    printf("Area 1 %lf\n",area[1]);
-    printf("Area 2 %lf\n",area[2]);
-    printf("Output Statistics (computed using %ld jobs) are:\n\n", departures);
-    printf("1) Global Statistics\n");
-    printf("  avg interarrival time = %6.6f\n", event[0].t/arrivals);
-    printf("  avg waiting time = %6.6f\n", tot_area/departures);
-    printf("  avg number of jobs in the network = %6.2f\n",
+    printf("Statistiche di Output (Processate %ld automobili) sono:\n\n", departures);
+    printf("1) Statistiche Globali\n");
+    printf("  tempo medio di arrivo = %6.6f auto/ora\n", event[0].t/arrivals);
+    printf("  tempo di risposta medio E(Ts) = %6.6f ore\n", tot_area/departures);
+    for(int i= 1 ; i<=SERVERS;i++)
+    {
+        tot_area-= statistics[i].service_1 + statistics[i].service_2;
+    }
+    tot_area-= statistics[0].service_2;
+    printf("  tempo medio di attesa E(Tq) = %6.6f ore\n", tot_area/departures);
+    printf("  numero medio di automobili in Officina = %6.2f\n",
            tot_area/clock.current);
     printf("%ld Partenze\n",departures);
     printf("%ld Arrivi\n",arrivals);
-    printf("%ld\n",queue[0]+queue[1]+queue[2]);
-    printf(" avg interarrival time = %6.6f\n",clock.current/departures);
+    printf("In coda sono rimaste %ld automobili\n",queue[0]+queue[1]+queue[2]);
+    printf("Le automobili di tipo 1 sono %ld con una percentuale del %6.2f\n",arrivi_tipo1,(float)arrivi_tipo1/arrivals);
+    printf("Le automobili di tipo 2 sono %ld con una percentuale del %6.2f\n",arrivi_tipo2,(float)arrivi_tipo2/arrivals);
+    
+    printf("2) Statistiche Locali\n");
+    printf("            E(ts)       E(tq)       E(S)\n");
+    printf("Diagnosi    %6.6f   %6.6f   %6.6f\n",area[1]/statistics[0].served,(area[1]-statistics[0].service_2)/statistics[0].served,statistics[0].service_2/statistics[0].served);
+    double service_type1 = 0.0;
+    double service_type2 = 0.0;
+    for(int i= 1 ; i<=SERVERS;i++)
+    {
+       service_type1 += statistics[i].service_1;
+       service_type2 += statistics[i].service_2;
+    }
+    printf("Coda_1      %6.6f   %6.6f   %6.6f\n",area[0]/arrivi_tipo1,(area[0]-service_type1)/arrivi_tipo1,service_type1/arrivi_tipo1);
+    printf("Coda_2      %6.6f   %6.6f   %6.6f\n",area[2]/arrivi_tipo2,(area[2]-service_type2)/arrivi_tipo2,service_type2/arrivi_tipo2);
+    
 
 }
