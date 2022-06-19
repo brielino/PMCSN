@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -g -Wall
 LDFLAGS = -lm
 
-OBJFILES = rngs.o rvgs.o Autofficina.o ValoriTeorici.o AutofficinaAggiornata.o
+OBJFILES = rngs.o rvgs.o Autofficina.o ValoriTeorici.o AutofficinaAggiornata.o Transiente.o
 
 all: $(OBJFILES)
 
@@ -22,6 +22,9 @@ Autofficina.o: Autofficina.c rngs.o rvgs.o
 	$(CC) $^ -o $@ $(LDFLAGS)
 
 AutofficinaAggiornata.o: AutofficinaAggiornata.c rngs.o rvgs.o
+	$(CC) $^ -o $@ $(LDFLAGS)
+
+Transiente.o: Transiente.c rngs.o rvgs.o
 	$(CC) $^ -o $@ $(LDFLAGS)
 
 clean:
