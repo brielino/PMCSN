@@ -18,60 +18,67 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "rngs.h"               /* the multi-stream generator           */
-#include "rvgs.h"               /* random variate generators            */
+#include "rngs.h"               
+#include "rvgs.h"               
 #include <unistd.h>
 #include <stdbool.h>
-#define START 0.0               /* initial time                         */
-#define STOP 300000.0            /* terminal (close the door) time       */
-#define INFINITE (100.0 * STOP) /* must be much larger than STOP        */
-#define SERVERS 4
-#define LAMBDA 0.2941              /* Traffic flow rate                    */
+#define START 0.0               //Tempo di inizio della simulazione
+#define STOP 3000000.0          //Tempo di fine della simulazione
+#define INFINITE (100.0 * STOP) 
+#define PONTI 2                 //Numero di ponti in Autofficina
+#define LAMBDA 0.2941           //Tasso di arrivo
 
-#define MU 0.2                 /* Service flow rate                    */
-#define MU_D 1.66                /* Service flow rate Diagnosi           */
+#define MU 0.2                  //Tasso di servizio Ponte
+#define MU_D 1.66               //Tasso di servizio Diagnosi
 
 
-// Clock Time
+
 typedef struct
 {
-    double current; // current time
-    double next;    // next-event time
+    double current;             //Tempo corrente
+    double next;                //Tempo prossimo evento
 } t;
 
-// Output Statistics
-typedef struct
-{                   // aggregated sums of:       
-    double service_1;     //   service times per job di tipo 1
-    double service_2;     //   service times per job di tipo 2                   
-    long served;        //   number of served jobs       
-    long arrives;       //   arrives in the node             
 
-} sum[SERVERS+1];
+typedef struct
+{                          
+    double service_1;           //Tempo di servizio Automobili tipo 1
+    double service_2;           //Tempo di servizio Automobili tipo 2
+    long served;                //Numero Automobili Servite           
+
+} sum[PONTI+1];
 
 
 typedef struct
 {
-    double t;  //next event time
-    int x;    // status: 0 (off) or 1 (on)
-                // nel caso dell'arrivo se 1 vuol dire che è nella prima coda 2 nella seconda
-                // oppure che sto servendo il job della prima coda (1) o della seconda coda (2)
-}event_list[1+1+SERVERS]; 
-//event_list[0] = Evento di arrivo nel sistema
-//event_list[1] = Evento servizio Diagnosi riferimento alla coda 2
-//event_list[i>1] = Evento servizio Multi-server
-int n_server_free = SERVERS;
-long queue[3] = { 0 , 0 , 0}; //number of jobs in queue
-long arrivals = 0;
-long departures = 0;
+    double t;                   //Istante di tempo in cui avviene l'evento
+    int x;                      //Tipo di evento 
+                                // nel caso dell'arrivo se 1 vuol dire che è nella prima coda  mentre 2 nella seconda
+                                // oppure che sto servendo il job della prima coda (1) o della seconda coda (2)
+}event_list[1+1+PONTI]; 
+                                //event_list[0] = Evento di arrivo nel sistema
+                                //event_list[1] = Evento servizio Diagnosi riferimento alla coda 2
+                                //event_list[i>1] = Evento servizio Multi-server
+int n_server_free = PONTI;
+long queue[3] = { 0 , 0 , 0};   //Numero Automobili in coda
+long arrivals = 0;              //Totale Automobili arrivate nel sistema
+long departures = 0;            //Totale Automobili servite
 double area[3] = { 0.0 , 0.0 , 0.0};
-long arrivi_tipo1 = 0;
-long arrivi_tipo2 = 0;
+long arrivi_tipo1 = 0;          //Totale numero Automobili di tipo 1 arrivate nel sistema
+long arrivi_tipo2 = 0;          //Totale numero Automobili di tipo 2 arrivate nel sistema
 t clock;
 event_list event;
 sum statistics;
 
 int Type_of_arrive()
+/*
+Input: void
+Output: int (Rappresenta il tipo di Automobile)
+Descrizione:
+    Funzione che utilizza la funzione Random() per identificare il tipo di Automobile arrivata nel sistema
+    1)Automobile di cui si conosce già il problema e non ha bisogno di effettuare la Diagnosi
+    2)Automobile che ha bisogno di effettuare la Diagnosi
+*/
 {
     double rand = Random();
     if(rand > 0 && rand < 6.5/10.0)
@@ -85,12 +92,19 @@ int Type_of_arrive()
     }
 }
 
-int NumeroDiJobPerTipoNelSistema(int tipo_di_job)
+int NumeroDiJobPerTipoNelSistema(int tipo_auto)
+/*
+Input: int (Identificativo del tipo di Auto , 1 o 2)
+Output: int (Identificativo del numero di AUto di un determinato tipo che sono in fase di Riparazine)
+Descrizione:
+    Questa funzione calcola il numero di Auto che stanno attualemente utilizzando un ponte
+    Bisogna passare come parametro il tipo di auto 1 o 2
+*/
 {
     int numero = 0;
-    for(int z = 2; z <= SERVERS+1; z++)
+    for(int z = 2; z <= PONTI+1; z++)
     {
-        if(event[z].x == tipo_di_job)
+        if(event[z].x == tipo_auto)
         {
             numero++;
         }
@@ -99,10 +113,13 @@ int NumeroDiJobPerTipoNelSistema(int tipo_di_job)
 }
 
 double GetArrival()
+/*
+Input: void
+Output: double (Tempo prossimo arrivo nel sistema)
+Descrizione:
+    Funzione che genera gli eventi che corrispondono agli arrivi delle Automobili in Officina
+*/
 {
-/* -------------------------------------------------------------------------- * 
- * generate the next arrival time, with rate LAMBDA                           *
- * -------------------------------------------------------------------------- */
     static double arrival = START;
     arrivals++;
     SelectStream(0);
@@ -111,17 +128,26 @@ double GetArrival()
 }
 
 double GetService(double mu)
+/*
+Input: double (Tempo medio di servizio)
+Output: double (Tempo necessario per riparare Automobile)
+Descrizione:
+    Funzione per calcolare il tempo che serve al Meccanico per poter riparare l'automobile
+    Bisogna passare il parametro mu perchè si può calcolare anche il tempo necessario per effettuare la Diagnosi
+*/
 {
-/* -------------------------------------------------------------------------- * 
- * generate the next service time for the access points                       *
- * -------------------------------------------------------------------------- */
     SelectStream(1);
     return (Exponential(1.0 / mu)); 
 }
 
 bool empty_queues()
+/*
+Input: void
+Output: bool (true se ci sono elementi in coda /false se non ci sono elementi in coda)
+Descrizione:
+    Funzione che permette di verificare se nel sistema
+*/
 {
-    //Vero se ci sono ancora elementi da processare
     int sum_queues = queue[0] + queue[1] +queue[2];
     if (sum_queues != 0)
         {
@@ -131,6 +157,12 @@ bool empty_queues()
 
 
 int NextEvent()
+/*
+Input: void
+Output: int (Identificativo prossimo evento da gestire)
+Descrizione:
+    Funzione permette di identificare il prossimo evento da gestire
+*/
 {
     int e;
     int i = 0;
@@ -139,7 +171,7 @@ int NextEvent()
         i++;
     }
     e = i;
-    while(i < SERVERS+2){
+    while(i < PONTI+2){
         i++;
         if(event[i].x !=0 && (event[i].t < event[e].t))
             e = i;
@@ -149,10 +181,15 @@ int NextEvent()
 }
 
 int FoundServerFree()
+/*
+Input: void
+Output: int (Identificativo del ponte libero)
+Descrizione:
+    Questa funzione permette di identificare uno dei Ponti non impegnati
+*/
 {
-    for(int z = 2; z <= SERVERS+1; z++)
+    for(int z = 2; z <= PONTI+1; z++)
     {
-        //printf("Il server %d è nello stato %d\n",z,event[z].x);
         if(event[z].x == 0)
         {
             return z;
@@ -162,37 +199,32 @@ int FoundServerFree()
 
 
 void ProcessArrivals()
+/*
+Input: void
+Output: void
+Descrizione:
+    Questa funzione quando l'evento da gestire è un arrivo permette di gestire l'evento,
+    distinguendo anche il tipo di errivo
+*/
 {
     if(event[0].x == 1)
     {
-        
         if(n_server_free != 0)
         {
-            //printf("Sto controllando elementi in coda 1\n");
-            //printf("il numero di elementi in coda è %ld\n",queue[0] - NumeroDiJobPerTipoNelSistema(1));
-            //if((queue[0] - NumeroDiJobPerTipoNelSistema(1))== 0)
-            
             int server_free = FoundServerFree();
-            //printf("Il server libero è  = %d\n",server_free);
             double service_time = GetService(MU);
             event[server_free].t = clock.current + service_time;
             event[server_free].x = 1;
             statistics[server_free-1].service_1 += service_time;
             statistics[server_free-1].served++;
-            n_server_free--;
-            
-            
+            n_server_free--;  
         }
         queue[0]++;
-        
-
     }
     else
     {
-        
         if(event[1].x == 0)
         {
-            
             double service_time = GetService(MU_D);
             event[1].t = clock.current + service_time;
             event[1].x = 3;
@@ -204,21 +236,30 @@ void ProcessArrivals()
     
 }
 
-int QualeCodaStavaEseguendo(int current_server)
+int QualeCodaStavaEseguendo(int ponte_corrente)
+/*
+Input: int (Identificativo del Ponte)
+Output: int (Identificativo del tipo di Automobile che era presente sullo specifico ponte)
+Descrizione:
+    Verifica quale Auto sta eseguendo sul ponte specificato
+*/
 {
-    return event[current_server].x;
+    return event[ponte_corrente].x;
 }
 
 
-void ProcessDeparture(int current_server)
+void ProcessDeparture(int ponte_corrente)
+/*
+Input: int (Identificativo del Ponte che ha finito di effettuare la riparazione)
+Output: void
+Descrizione:
+    In questa funzione viene gestito l'evento di "Partenza" ovvero quando un Automobile libera un Ponte
+*/
 {
     double service_time = 0.0;
 
-    if(current_server == 1)
+    if(ponte_corrente == 1)
     {
-        /*
-        Partenza dal servizio di diagnosi
-        */
         if(queue[1] > 1)
         {
             double service_time = GetService(MU_D);
@@ -244,57 +285,55 @@ void ProcessDeparture(int current_server)
             statistics[server_free-1].served++;
             n_server_free--;
         }
-        queue[2]++;
-        
+        queue[2]++;   
     }
     else
     {
-
         if(queue[0] - NumeroDiJobPerTipoNelSistema(1)> 0)
         {   
-            if(QualeCodaStavaEseguendo(current_server) == 1)
+            if(QualeCodaStavaEseguendo(ponte_corrente) == 1)
             {
                 queue[0]--;
             }
-            else if(QualeCodaStavaEseguendo(current_server) == 2)
+            else if(QualeCodaStavaEseguendo(ponte_corrente) == 2)
             {
                 queue[2]--;
             }
             service_time = GetService(MU);
-            event[current_server].t = service_time +clock.current;
-            event[current_server].x = 1;
-            statistics[current_server-1].service_1 += service_time;
-            statistics[current_server-1].served++;
+            event[ponte_corrente].t = service_time +clock.current;
+            event[ponte_corrente].x = 1;
+            statistics[ponte_corrente-1].service_1 += service_time;
+            statistics[ponte_corrente-1].served++;
         
         }
         else if(queue[2] - NumeroDiJobPerTipoNelSistema(2)> 0)
         {
-            if(QualeCodaStavaEseguendo(current_server) == 1)
+            if(QualeCodaStavaEseguendo(ponte_corrente) == 1)
             {
                 queue[0]--;
             }
-            else if(QualeCodaStavaEseguendo(current_server) == 2)
+            else if(QualeCodaStavaEseguendo(ponte_corrente) == 2)
             {
                 queue[2]--;
             }
             service_time = GetService(MU);
-            event[current_server].t = service_time +clock.current;
-            event[current_server].x = 2;
-            statistics[current_server-1].service_2 += service_time;
-            statistics[current_server-1].served++;
+            event[ponte_corrente].t = service_time +clock.current;
+            event[ponte_corrente].x = 2;
+            statistics[ponte_corrente-1].service_2 += service_time;
+            statistics[ponte_corrente-1].served++;
         }
         else
         {
-            if(QualeCodaStavaEseguendo(current_server) == 1)
+            if(QualeCodaStavaEseguendo(ponte_corrente) == 1)
             {
                 queue[0]--;
             }
-            else if(QualeCodaStavaEseguendo(current_server) == 2)
+            else if(QualeCodaStavaEseguendo(ponte_corrente) == 2)
             {
                 queue[2]--;
             }
-            event[current_server].t = INFINITE;
-            event[current_server].x = 0;
+            event[ponte_corrente].t = INFINITE;
+            event[ponte_corrente].x = 0;
             n_server_free++;
         }
         departures++;
@@ -310,7 +349,7 @@ void main()
     clock.current = START;
     event[0].t = GetArrival();
     event[0].x = Type_of_arrive();
-    for(int z=1; z<=SERVERS+1; z++)
+    for(int z=1; z<=PONTI+1; z++)
     {
         event[z].t = INFINITE;
         event[z].x = 0;
@@ -322,13 +361,13 @@ void main()
         printf("%ld Partenze\n",departures);
         printf("%ld Arrivi\n",arrivals);
         printf("Server    Stato\n");
-        for(int k=1 ; k<= SERVERS+1 ;k++)
+        for(int k=1 ; k<= PONTI+1 ;k++)
         {
             printf("%d          %d\n",k,event[k].x);
         }
         printf("Numero server Liberi =%d\n",n_server_free);
         printf("-----------------------------\n");
-        for(int k=0 ; k<= SERVERS+1 ;k++)
+        for(int k=0 ; k<= PONTI+1 ;k++)
         {
             printf("evento %d  t=%f stato x=%d\n",k,event[k].t,event[k].x);
         }
@@ -338,18 +377,14 @@ void main()
         printf("L'evento preso in carico è %d\n",e);
         scanf("%d",&aa);
         printf("\n\n");*/
-        
         clock.next = event[e].t;
         area[0] += (clock.next - clock.current) * queue[0];
         area[1] += (clock.next - clock.current) * queue[1];
         area[2] += (clock.next - clock.current) * queue[2];
         clock.current = clock.next;
-        
-
+    
         if(e == 0)
         {
-            // Process an Arrival
-            //printf("Processo Arrivo\n\n");
             ProcessArrivals();
             event[0].t = GetArrival();
             event[0].x = Type_of_arrive();
@@ -364,15 +399,13 @@ void main()
         }
         
     }
-    
-
-    
+      
     double tot_area = area[0] + area[1] + area[2];
     printf("Statistiche di Output (Processate %ld automobili) sono:\n\n", departures);
     printf("1) Statistiche Globali\n");
     printf("  tempo medio di arrivo = %6.6f auto/ora\n", event[0].t/arrivals);
     printf("  tempo di risposta medio E(Ts) = %6.6f ore\n", tot_area/departures);
-    for(int i= 1 ; i<=SERVERS;i++)
+    for(int i= 1 ; i<=PONTI;i++)
     {
         tot_area-= statistics[i].service_1 + statistics[i].service_2;
     }
@@ -391,7 +424,7 @@ void main()
     printf("Diagnosi    %6.6f   %6.6f   %6.6f\n",area[1]/statistics[0].served,(area[1]-statistics[0].service_2)/statistics[0].served,statistics[0].service_2/statistics[0].served);
     double service_type1 = 0.0;
     double service_type2 = 0.0;
-    for(int i= 1 ; i<=SERVERS;i++)
+    for(int i= 1 ; i<=PONTI;i++)
     {
        service_type1 += statistics[i].service_1;
        service_type2 += statistics[i].service_2;
@@ -399,5 +432,4 @@ void main()
     printf("Coda_1      %6.6f   %6.6f   %6.6f\n",area[0]/arrivi_tipo1,(area[0]-service_type1)/arrivi_tipo1,service_type1/arrivi_tipo1);
     printf("Coda_2      %6.6f   %6.6f   %6.6f\n",area[2]/arrivi_tipo2,(area[2]-service_type2)/arrivi_tipo2,service_type2/arrivi_tipo2);
     
-
 }

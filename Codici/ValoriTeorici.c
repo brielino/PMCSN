@@ -38,7 +38,7 @@ void MultiServer()
 {
     double prob1 = 0.65;
     double prob2 = 0.35;
-    int n_server = 4;
+    int n_server = 2;
     double LAMBDA = 0.2941;
     double MU = 0.2;
     double MU_D = 1.66;
