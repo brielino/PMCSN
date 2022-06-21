@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -g -Wall
 LDFLAGS = -lm
 
-OBJFILES = rngs.o rvgs.o Autofficina.o ValoriTeorici.o AutofficinaAggiornata.o Transiente.o
+OBJFILES = rngs.o rvgs.o Autofficina.o ValoriTeorici.o AutofficinaAggiornata.o Transiente.o estimate acs
 
 all: $(OBJFILES)
 
@@ -26,6 +26,12 @@ AutofficinaAggiornata.o: AutofficinaAggiornata.c rngs.o rvgs.o
 
 Transiente.o: Transiente.c rngs.o rvgs.o
 	$(CC) $^ -o $@ $(LDFLAGS)
+
+estimate: estimate.c rngs.o rvms.o
+	$(CC) $(LDFLAGS) $^ -o $@ -lm
+
+acs: acs.c
+	$(CC) $(LDFLAGS) $< -o $@ -lm
 
 clean:
 	/bin/rm -f $(OBJFILES) core*

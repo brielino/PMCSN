@@ -15,18 +15,29 @@ make: *** No rule to make target 'all'.  Stop.
  
 
  
-# Make data base, printed on Sun Jun 19 19:26:42 2022
+# Make data base, printed on Tue Jun 21 17:40:25 2022
+ 
 
 # Variables
+ 
 
+ 
 # environment
+ 
 GDK_BACKEND = x11
+ 
 # environment
+ 
 LC_ALL = C
+ 
 # environment
+ 
 SNAP_INSTANCE_KEY = 
+ 
 # environment
-VSCODE_IPC_HOOK_EXTHOST = /run/user/1000/vscode-ipc-8b5edb0d-f0e4-46d7-b69b-e39e82ae1bb4.sock
+ 
+VSCODE_IPC_HOOK_EXTHOST = /run/user/1000/vscode-ipc-e50d28d9-07ec-4bad-b3b4-f66d3f4cba70.sock
+ 
 # environment
 VSCODE_CWD = /home/brielino
 # environment
@@ -102,7 +113,7 @@ SNAP_REEXEC =
 # environment
 VSCODE_VERBOSE_LOGGING = true
 # environment
-VSCODE_PID = 51805
+VSCODE_PID = 2063
 # environment
 XDG_SESSION_TYPE = x11
 # automatic
@@ -112,7 +123,7 @@ CLUTTER_BACKEND = x11
 # environment
 BAMF_DESKTOP_FILE_HINT = /var/lib/snapd/desktop/applications/code_code.desktop
 # environment
-SESSION_MANAGER = local/brielino-VirtualBox:@/tmp/.ICE-unix/1378,unix/brielino-VirtualBox:/tmp/.ICE-unix/1378
+SESSION_MANAGER = local/brielino-VirtualBox:@/tmp/.ICE-unix/1356,unix/brielino-VirtualBox:/tmp/.ICE-unix/1356
 # automatic
 *F = $(notdir $*)
 # environment
@@ -260,7 +271,7 @@ SNAP_LIBRARY_PATH = /var/lib/snapd/lib/gl:/var/lib/snapd/lib/gl32:/var/lib/snapd
 
 # Directories
 
-# . (device 2051, inode 2886140): 6 files, no impossibilities.
+# . (device 2051, inode 2883903): 6 files, no impossibilities.
 
 # 6 files, no impossibilities in 1 directories.
 
@@ -281,11 +292,8 @@ Makefile:
 .DEFAULT:
 #  Implicit rule search has not been done.
 #  Modification time never checked.
- 
 #  File has not been updated.
- 
 
- 
 # Not a target:
 all:
 #  Command line target.
@@ -310,10 +318,15 @@ GNUmakefile:
 # files hash-table stats:
 # Load=6/1024=1%, Rehash=0, Collisions=0/15=0%
 # VPATH Search Paths
+ 
 
+ 
 # No 'vpath' search paths.
+ 
 
+ 
 # No general ('VPATH' variable) search path.
+ 
 
 # strcache buffers: 1 (0) / strings = 14 / storage = 120 B / avg = 8 B
 # current buf: size = 8162 B / used = 120 B / count = 14 / avg = 8 B
@@ -321,6 +334,6 @@ GNUmakefile:
 # strcache performance: lookups = 17 / hit rate = 17%
 # hash-table stats:
 # Load=14/8192=0%, Rehash=0, Collisions=0/17=0%
-# Finished Make data base on Sun Jun 19 19:26:42 2022
+# Finished Make data base on Tue Jun 21 17:40:25 2022
 
  
