@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -g -Wall
 LDFLAGS = -lm
 
-OBJFILES = rngs.o rvgs.o Autofficina.o ValoriTeorici.o AutofficinaAggiornata.o Transiente.o estimate acs
+OBJFILES = rngs.o rvgs.o Autofficina.o ValoriTeorici.o AutofficinaAggiornata.o Transiente.o Stazionaria.o estimate acs
 
 all: $(OBJFILES)
 
@@ -25,6 +25,9 @@ AutofficinaAggiornata.o: AutofficinaAggiornata.c rngs.o rvgs.o
 	$(CC) $^ -o $@ $(LDFLAGS)
 
 Transiente.o: Transiente.c rngs.o rvgs.o
+	$(CC) $^ -o $@ $(LDFLAGS)
+
+Stazionaria.o: Stazionaria.c rngs.o rvgs.o
 	$(CC) $^ -o $@ $(LDFLAGS)
 
 estimate: estimate.c rngs.o rvms.o

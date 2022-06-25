@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- * 
- * Name            : Autofficina.c                                            *
+ * Name            : Stazionaria.c                                            *
  * Authors         : G. A. Tummolo                                            *
  * Language        : C                                                        *
  * Latest Revision : 19-06-2022                                               *
@@ -31,7 +31,14 @@
 #define MU 0.2                  //Tasso di servizio Ponte
 #define MU_D 1.66               //Tasso di servizio Diagnosi
 
+#define N (LAMBDA *30000)
+#define K 64
+#define B (int) (N/K)
 
+
+typedef struct {
+    double area;
+} statistics_batch[K][3];
 
 typedef struct
 {
@@ -63,12 +70,13 @@ int n_ponti_liberi = PONTI;
 long queue[3] = { 0 , 0 , 0};   //Numero Automobili in coda
 long arrivi = 0;              //Totale Automobili arrivate nel sistema
 long partenze = 0;            //Totale Automobili servite
-double area[3] = { 0.0 , 0.0 , 0.0};
+int partenze_batch = 0;
 long arrivi_tipo1 = 0;          //Totale numero Automobili di tipo 1 arrivate nel sistema
 long arrivi_tipo2 = 0;          //Totale numero Automobili di tipo 2 arrivate nel sistema
 t clock;
 event_list event;
 sum statistics;
+statistics_batch s_batch;
 
 int Type_of_arrive()
 /*
@@ -337,6 +345,7 @@ Descrizione:
             n_ponti_liberi++;
         }
         partenze++;
+        partenze_batch++;
     }
 
 
@@ -347,6 +356,8 @@ void main()
     //Init
     PlantSeeds(0);
     clock.current = START;
+    int batch_corrente = 0;
+    
     event[0].t = GetArrival();
     event[0].x = Type_of_arrive();
     for(int z=1; z<=PONTI+1; z++)
@@ -354,13 +365,23 @@ void main()
         event[z].t = INFINITE;
         event[z].x = 0;
     }
-    int aa;
-    while((event[0].t < STOP || empty_queues())){
+    for(int current_batch_index=0 ; current_batch_index<64 ; current_batch_index++){
+        for(int z=0; z<3;z++){ 
+            s_batch[current_batch_index][z].area=0.0;
+
+        } 
+    } 
+    while(partenze < N){
         int e = NextEvent();
         clock.next = event[e].t;
-        area[0] += (clock.next - clock.current) * queue[0];
-        area[1] += (clock.next - clock.current) * queue[1];
-        area[2] += (clock.next - clock.current) * queue[2];
+        s_batch[batch_corrente][0].area += (clock.next - clock.current) * queue[0];
+        s_batch[batch_corrente][1].area += (clock.next - clock.current) * queue[1];
+        s_batch[batch_corrente][2].area += (clock.next - clock.current) * queue[2];
+
+        if(B < partenze_batch && batch_corrente < K){
+            batch_corrente++;
+            partenze_batch = 0;    
+        }
         clock.current = clock.next;
     
         if(e == 0)
@@ -379,36 +400,24 @@ void main()
         }
         
     }
-      
-    double tot_area = area[0] + area[1] + area[2];
-    printf("Statistiche di Output (Processate %ld automobili) sono:\n\n", partenze);
-    printf("1) Statistiche Globali\n");
-    printf("  tempo medio di arrivo = %6.6f auto/ora\n", event[0].t/arrivi);
-    printf("  tempo di risposta medio E(Ts) = %6.6f ore\n", tot_area/partenze);
-    for(int i= 1 ; i<=PONTI;i++)
+    FILE *file = fopen("Stazionaria.txt", "w+");
+        if (file == NULL)
+        {
+            printf("Error");
+            return;
+        }
+        for (int i = 0; i < K; i++)
+        {  
+            double tms = (s_batch[i][0].area + s_batch[i][1].area + s_batch[i][2].area)/B;
+            fprintf(file, "%f\n", tms);
+            fflush(file);
+        }
+        fclose(file);
+    for(int i = 0; i < K; i++)
     {
-        tot_area-= statistics[i].service_1 + statistics[i].service_2;
+        double tms = (s_batch[i][0].area + s_batch[i][1].area + s_batch[i][2].area)/B;
+        printf("La media per il batch %d è %6.6f\n",i+1,tms);
+
     }
-    tot_area-= statistics[0].service_2;
-    printf("  tempo medio di attesa E(Tq) = %6.6f ore\n", tot_area/partenze);
-    printf("  numero medio di automobili in Officina = %6.2f\n",
-           tot_area/clock.current);
-    printf("%ld Partenze\n",partenze);
-    printf("%ld Arrivi\n",arrivi);
-    printf("In coda sono rimaste %ld automobili\n",queue[0]+queue[1]+queue[2]);
-    printf("Le automobili di tipo 1 sono %ld con una percentuale del %6.2f\n",arrivi_tipo1,(float)arrivi_tipo1/arrivi);
-    printf("Le automobili di tipo 2 sono %ld con una percentuale del %6.2f\n",arrivi_tipo2,(float)arrivi_tipo2/arrivi);
-    
-    printf("2) Statistiche Locali\n");
-    printf("            E(ts)       E(tq)       E(S)\n");
-    printf("Diagnosi    %6.6f   %6.6f   %6.6f\n",area[1]/statistics[0].served,(area[1]-statistics[0].service_2)/statistics[0].served,statistics[0].service_2/statistics[0].served);
-    double service_type1 = 0.0;
-    double service_type2 = 0.0;
-    for(int i= 1 ; i<=PONTI;i++)
-    {
-       service_type1 += statistics[i].service_1;
-       service_type2 += statistics[i].service_2;
-    }
-    printf("Coda_1      %6.6f   %6.6f   %6.6f\n",area[0]/arrivi_tipo1,(area[0]-service_type1)/arrivi_tipo1,service_type1/arrivi_tipo1);
-    printf("Coda_2      %6.6f   %6.6f   %6.6f\n",area[2]/arrivi_tipo2,(area[2]-service_type2)/arrivi_tipo2,service_type2/arrivi_tipo2); 
+
 }
