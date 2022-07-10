@@ -1,2 +1,2 @@
 # PMCSN
-Progetto Universitario per il cordo si Performance Modeling of Comuper Systems and Networks
+Progetto Universitario per il corso di Performance Modeling of Computer Systems and Networks
