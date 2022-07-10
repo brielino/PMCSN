@@ -2,7 +2,7 @@
  * Name            : Stazionaria.c                                            *
  * Authors         : G. A. Tummolo                                            *
  * Language        : C                                                        *
- * Latest Revision : 19-06-2022                                               *
+ * Latest Revision : 10-07-2022                                               *
  * -------------------------------------------------------------------------- */
 /*
                                 ________                      ______
@@ -25,8 +25,8 @@
 #define START 0.0               //Tempo di inizio della simulazione
 #define STOP 50000.0          //Tempo di fine della simulazione
 #define INFINITE (100.0 * STOP) 
-#define PONTI 2                 //Numero di ponti in Autofficina
-#define LAMBDA 0.2941           //Tasso di arrivo
+#define PONTI 4                 //Numero di ponti in Autofficina
+#define LAMBDA 0.5           //Tasso di arrivo
 
 #define MU 0.2                  //Tasso di servizio Ponte
 #define MU_D 1.66               //Tasso di servizio Diagnosi
@@ -77,6 +77,7 @@ t clock;
 event_list event;
 sum statistics;
 statistics_batch s_batch;
+int stream = 100;
 
 int Type_of_arrive()
 /*
@@ -130,7 +131,7 @@ Descrizione:
 {
     static double arrival = START;
     arrivi++;
-    SelectStream(0);
+    SelectStream(stream);
     arrival += Exponential(1.0 / LAMBDA);
     return (arrival);
 }
@@ -144,7 +145,7 @@ Descrizione:
     Bisogna passare il parametro mu perchè si può calcolare anche il tempo necessario per effettuare la Diagnosi
 */
 {
-    SelectStream(1);
+    SelectStream(stream+1);
     return (Exponential(1.0 / mu)); 
 }
 
@@ -179,7 +180,7 @@ Descrizione:
         i++;
     }
     e = i;
-    while(i < PONTI+2){
+    while(i < PONTI+1){
         i++;
         if(event[i].x !=0 && (event[i].t < event[e].t))
             e = i;
@@ -353,7 +354,6 @@ Descrizione:
 
 void main()
 {
-    //Init
     PlantSeeds(0);
     clock.current = START;
     int batch_corrente = 0;

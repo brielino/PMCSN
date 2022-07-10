@@ -2,7 +2,7 @@
  * Name            : Autofficina.c                                            *
  * Authors         : G. A. Tummolo                                            *
  * Language        : C                                                        *
- * Latest Revision : 19-06-2022                                               *
+ * Latest Revision : 10-07-2022                                               *
  * -------------------------------------------------------------------------- */
 /*
                                 ________                      ______
@@ -23,10 +23,10 @@
 #include <unistd.h>
 #include <stdbool.h>
 #define START 0.0               //Tempo di inizio della simulazione
-#define STOP 50000.0          //Tempo di fine della simulazione
+#define STOP 30000.0          //Tempo di fine della simulazione
 #define INFINITE (100.0 * STOP) 
-#define PONTI 2                 //Numero di ponti in Autofficina
-#define LAMBDA 0.2941           //Tasso di arrivo
+#define PONTI 4                 //Numero di ponti in Autofficina
+#define LAMBDA 0.5        //Tasso di arrivo
 
 #define MU 0.2                  //Tasso di servizio Ponte
 #define MU_D 1.66               //Tasso di servizio Diagnosi
@@ -171,7 +171,7 @@ Descrizione:
         i++;
     }
     e = i;
-    while(i < PONTI+2){
+    while(i < PONTI+1){
         i++;
         if(event[i].x !=0 && (event[i].t < event[e].t))
             e = i;
@@ -344,7 +344,6 @@ Descrizione:
 
 void main()
 {
-    //Init
     PlantSeeds(0);
     clock.current = START;
     event[0].t = GetArrival();
@@ -354,7 +353,6 @@ void main()
         event[z].t = INFINITE;
         event[z].x = 0;
     }
-    int aa;
     while((event[0].t < STOP || empty_queues())){
         int e = NextEvent();
         clock.next = event[e].t;
@@ -362,7 +360,6 @@ void main()
         area[1] += (clock.next - clock.current) * queue[1];
         area[2] += (clock.next - clock.current) * queue[2];
         clock.current = clock.next;
-    
         if(e == 0)
         {
             ProcessArrivals();
@@ -371,6 +368,7 @@ void main()
             if(event[0].t > STOP)
             {
                 event[0].x = 0;
+                arrivi--;
             }
         }
         else
@@ -383,7 +381,7 @@ void main()
     double tot_area = area[0] + area[1] + area[2];
     printf("Statistiche di Output (Processate %ld automobili) sono:\n\n", partenze);
     printf("1) Statistiche Globali\n");
-    printf("  tempo medio di arrivo = %6.6f auto/ora\n", event[0].t/arrivi);
+    printf("  tempo medio di arrivo = %6.6f auto/ora\n", arrivi/event[0].t);
     printf("  tempo di risposta medio E(Ts) = %6.6f ore\n", tot_area/partenze);
     for(int i= 1 ; i<=PONTI;i++)
     {
@@ -410,5 +408,9 @@ void main()
        service_type2 += statistics[i].service_2;
     }
     printf("Coda_1      %6.6f   %6.6f   %6.6f\n",area[0]/arrivi_tipo1,(area[0]-service_type1)/arrivi_tipo1,service_type1/arrivi_tipo1);
-    printf("Coda_2      %6.6f   %6.6f   %6.6f\n",area[2]/arrivi_tipo2,(area[2]-service_type2)/arrivi_tipo2,service_type2/arrivi_tipo2); 
+    printf("Coda_2      %6.6f   %6.6f   %6.6f\n",area[2]/arrivi_tipo2,(area[2]-service_type2)/arrivi_tipo2,service_type2/arrivi_tipo2);
+    double area_m = area[0]+area[2];
+    double serv_m = service_type2 + service_type1;
+    printf("Multiserver %6.6f   %6.6f   %6.6f\n",area_m/partenze,(area_m-serv_m)/partenze,serv_m/partenze);
+    
 }

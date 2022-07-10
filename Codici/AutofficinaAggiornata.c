@@ -1,8 +1,8 @@
 /* -------------------------------------------------------------------------- * 
- * Nome            : Autofficina.c                                            *
+ * Nome            : AutofficinaAggiornata.c                                            *
  * Autore          : G. A. Tummolo                                            *
  * Linguaggio      : C                                                        *
- * Ultima Revisione: 19-05-2022                                               *
+ * Ultima Revisione: 10-07-2022                                               *
  * Questa versione è un modello più complesso                                 * 
  * -------------------------------------------------------------------------- */
 #include <stdio.h>
@@ -15,12 +15,11 @@
 #define STOP 30000.0            /* terminal (close the door) time       */
 #define INFINITE (100.0 * STOP) /* must be much larger than STOP        */
 #define SERVERS 2
-#define LAMBDA 0.2941            /* Traffic flow rate                    */
+#define LAMBDA 0.5              /* Traffic flow rate                    */
 #define MU 0.25                  /* Service flow rate to repair machine  */
 #define MU_D 2.0                /* Service flow rate to analyze machine */
 #define MU_P 4.0               /* Service flow rate to show if the machine has new a new repair */
 
-//TODO: ERRORI sull'individuazione degli eventi con alcuni seed
 // Clock Time
 typedef struct
 {

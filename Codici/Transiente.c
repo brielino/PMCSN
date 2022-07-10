@@ -2,7 +2,7 @@
  * Name            : Transiente.c                                            *
  * Authors         : G. A. Tummolo                                            *
  * Language        : C                                                        *
- * Latest Revision : 19-06-2022                                               *
+ * Latest Revision : 10-07-2022                                               *
  * -------------------------------------------------------------------------- */
 /*
                                 ________                      ______
@@ -23,10 +23,10 @@
 #include <unistd.h>
 #include <stdbool.h>
 #define START 0.0               //Tempo di inizio della simulazione
-#define STOP 3000000.0 
+#define STOP 15000.0 
 #define INFINITE (100.0 * STOP) 
-#define PONTI 2                 //Numero di ponti in Autofficina
-#define LAMBDA 0.2941           //Tasso di arrivo
+#define PONTI 4                 //Numero di ponti in Autofficina
+#define LAMBDA 0.5          //Tasso di arrivo
 
 #define MU 0.2                  //Tasso di servizio Ponte
 #define MU_D 1.66               //Tasso di servizio Diagnosi
@@ -150,20 +150,6 @@ Descrizione:
     return (Exponential(1.0 / mu)); 
 }
 
-bool empty_queues()
-/*
-Input: void
-Output: bool (true se ci sono elementi in coda /false se non ci sono elementi in coda)
-Descrizione:
-    Funzione che permette di verificare se nel sistema
-*/
-{
-    int sum_queues = queue[0] + queue[1] +queue[2];
-    if (sum_queues != 0)
-        {
-            return true;
-        }
-}
 
 
 int NextEvent()
@@ -181,7 +167,7 @@ Descrizione:
         i++;
     }
     e = i;
-    while(i < PONTI+2){
+    while(i < PONTI+1){
         i++;
         if(event[i].x !=0 && (event[i].t < event[e].t))
             e = i;
@@ -347,7 +333,6 @@ double Transiente(double t_arresto)
     clock.current = START;
     event[0].t = GetArrival();
     event[0].x = Type_of_arrive();
-
     while(event[0].t < t_arresto ){
         int e = NextEvent();
         clock.next = event[e].t;
@@ -361,9 +346,10 @@ double Transiente(double t_arresto)
             ProcessArrivals();
             event[0].t = GetArrival();
             event[0].x = Type_of_arrive();
-            if(event[0].t > STOP)
+            if(event[0].t > t_arresto)
             {
                 event[0].x = 0;
+                arrivi--;
             }
         }
         else
@@ -373,17 +359,18 @@ double Transiente(double t_arresto)
         
     }
     double tot_area = area[0] + area[1] + area[2];
-    return (double)(tot_area/partenze);
+    return tot_area/partenze;
 }
 
 int main()
 {
-    double t_arresto[10] = { 80.0, 160.0, 640.0, 1280.0, 2560.0, 5120.0, 10000.0, 15000.0, 20000.0, 30000.0 };
-    char* nomiFile[10] = {"tran80.txt","tran160.txt","tran640.txt","tran1280.txt","tran2560.txt","tran5120.txt","tran10000.txt","tran15000.txt","tran20000.txt","tran30000.txt"};
-    long seed = 98765;
+    double t_arresto[14] = { 240.0, 2880.0, 5760.0, 8640.0, 11520.0, 14400.0, 15840.0, 17280.0, 20160.0, 28800.0, 57600.0, 115200.0, 230400.0, 460800.0};
+    char* nomiFile[14] = {"tran240.txt","tran2880.txt","tran5760.txt","tran8640.txt","tran11520.txt","tran14400.txt","tran15840.txt","tran17280.txt","tran20160.txt","tran28800.txt","tran57600.txt","tran115200.txt",
+                "tran230400.txt","tran460800.txt"};
+    long seed = 12345678;
     double tempo_di_risposta;
     
-    for(int j = 0; j < 10 ; j++)
+    for(int j = 0; j < 14 ; j++)
     {
         FILE *file = fopen(nomiFile[j], "w+");
         if (file == NULL)
